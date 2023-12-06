@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections;
+using System.Diagnostics;
 using System.Linq;
 
 namespace GeneticSharp
@@ -11,7 +12,7 @@ namespace GeneticSharp
     {
         private readonly int m_minValue;
         private readonly int m_maxValue;
-        private readonly BitArray m_originalValue;
+        private readonly int m_originalValue;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="T:GeneticSharp.Domain.Chromosomes.IntegerChromosome"/> class.
@@ -23,9 +24,14 @@ namespace GeneticSharp
             m_minValue = minValue;
             m_maxValue = maxValue;
             var intValue = RandomizationProvider.Current.GetInt(m_minValue, m_maxValue);
-            m_originalValue = new BitArray(new int[] { intValue });
+            m_originalValue = intValue;
 
             CreateGenes();
+        }
+
+        private static int GetBit(int val, int bit)
+        {
+            return (val >> bit) & 1;
         }
 
         /// <summary>
@@ -35,7 +41,7 @@ namespace GeneticSharp
         /// <param name="geneIndex">Gene index.</param>
         public override Gene GenerateGene(int geneIndex)
         {
-            var value = m_originalValue[geneIndex];
+            var value = GetBit(m_originalValue, geneIndex) == 1;
 
             return new Gene(value);
         }
@@ -53,7 +59,7 @@ namespace GeneticSharp
         /// Converts the chromosome to its integer representation.
         /// </summary>
         /// <returns>The integer.</returns>
-        public int ToInteger()
+        public int ToIntegerOld()
         {
             var array = new int[1];
             var genes = GetGenes().Select(g => (bool)g.Value).ToArray();
@@ -61,6 +67,20 @@ namespace GeneticSharp
             bitArray.CopyTo(array, 0);
 
             return array[0];
+        }
+
+        public int ToInteger()
+        {
+            var genes = GetGenes();
+            Debug.Assert(genes.Length == 32);
+            var val = 0;
+
+            for (var i = 0; i < genes.Length; i++)
+            {
+                val += (((bool)genes[i].Value) ? 1 : 0) << i;
+            }
+
+            return val;
         }
 
         /// <summary>
